@@ -15,7 +15,7 @@ sheet = excel.get_sheet_by_name("EnterpriseMap")
 # row between 133 - 10006
 # col C:company D:LE E:SH
 column = ["C", "D", "E"]
-rows = 10006
+rows = 180
 
 # for col in column:
 node_dict = {}
@@ -30,13 +30,19 @@ node_graph.clear()
 
 print("* NX build graph")
 for from_nodes, to_node in node_dict.items():
-    from_node_list = str(from_nodes).split("，")
-    # print(str(from_nodes),"->",str(to_node))
+    from_node_list = str(from_nodes).split(",")
     for from_node in from_node_list:
+        # print from_node,"->",to_node
         node_graph.add_edge(from_node, to_node)
 
 print("* NX draw graph")
-nx.draw_networkx(node_graph, pos=nx.random_layout(node_graph), with_labels=True, font_size=8, node_color="r", edge_color="black")
+# nx.draw_networkx(node_graph, pos=nx.random_layout(node_graph), with_labels=True, font_size=8, node_color="r", edge_color="black")
+nx.draw_networkx(node_graph,
+                 pos=nx.random_layout(node_graph),
+                 with_labels=False,
+                 font_size=6,
+                 node_color="r",
+                 edge_color="b")
 print("* NX save graph")
 pic_name = "node_graph.png"
 plt.savefig(pic_name)
