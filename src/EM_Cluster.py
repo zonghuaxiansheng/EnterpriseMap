@@ -10,53 +10,104 @@ import matplotlib.pyplot as plt
 class EM_Cluster:
     def __init__(self):
         self.cluster_ = []
-        self.hash_ = {}
-    def get_hash_index(self, keys):
+        self.attr_idx_ = {}
+        self.idx_attr_ = {}
+    def get_idx_by_attr(self, keys):
+        indexes = []
         for key in keys:
-            if self.hash_.has_key(key):
-                return self.hash_.get(key)
-        return None
-    def new_cluster(self, node):
-        self.cluster_.append([node])
-        return len(self.cluster_) - 1
-    def push_into_cluster(self, index, node):
-        self.cluster_[index].append(node)
-    def push_into_hash(self, keys, index):
+            if self.attr_idx_.has_key(key):
+                indexes.append(self.attr_idx_.get(key))
+        return indexes
+    def get_attr_by_idx(self, index):
+        if self.idx_attr_.has_key(index):
+            return self.idx_attr_.get(index)
+    def put_idx_by_attr(self, keys, index):
         for key in keys:
-            if self.hash_.has_key(key):
-                if self.hash_.get(key) != index:
-                    print("* EM_Cluster: Hash get a same key but with different value !")
+            if self.attr_idx_.has_key(key):
+                if self.attr_idx_.get(key) != index:
+                    print("* EM_Cluster: Attr to Idx get a same key but with different value !")
                     print("* EM_Cluster: Key " + key)
                     print("* EM_Cluster: Value1 " + self.hash_.get(key))
                     print("* EM_Cluster: Value2 " + index)
                     return False
             else:
-                self.hash_[key] = index
+                self.attr_idx_[key] = index
         return True
+    def update_idx_by_attr(self, keys, index):
+        for key in keys:
+            self.attr_idx_[key] = index
+    def put_attr_by_idx(self, index, attrs):
+        if self.idx_attr_.has_key(index):
+            self.idx_attr_[index].extend(attrs)
+            self.idx_attr_[index] = list(set(self.idx_attr_[index]))
+        else:
+            self.idx_attr_[index] = attrs
+    def del_attr_by_idx(self, indexes):
+        for idx in indexes:
+            del self.idx_attr_[idx]
+    def new_cluster(self, node):
+        self.cluster_.append([node])
+        return len(self.cluster_) - 1
+    def put_cluster(self, index, node):
+        self.cluster_[index].append(node)
+    def merge_cluster(self, indexes):
+        merge_nodes = []
+        for idx in indexes:
+            merge_nodes.extend(self.cluster_[idx])
+        merge_nodes = list(set(merge_nodes))
+        self.cluster_.append(merge_nodes)
+        return len(self.cluster_) - 1
     def build_cluster(self, nodes):
         for node in nodes:
             keys = node["keys"]
-            index = self.get_hash_index(keys)
-            if index:
-                self.push_into_cluster(index, node)
-                success = self.push_into_hash(keys, index)
-                if not success:
-                    print("* EM_Cluster: Build cluster failed !")
-                    exit(1)
+            indexes = self.get_idx_by_attr(keys)
+            if indexes:
+                merge_idx = list(set(indexes))
+                if len(merge_idx) == 1:
+                    # Step1. Put node into cluster by index
+                    self.put_cluster(merge_idx, node)
+                    # Step2. Put all node's attrs into idx_attr_
+                    self.put_attr_by_idx(merge_idx, keys)
+                    # Step3. Put the attr->idx relationship into attr_idx_
+                    success = self.put_idx_by_attr(keys, merge_idx)
+                    if not success:
+                        print("* EM_Cluster: Build cluster failed !")
+                        exit(1)
+                else:
+                    # Find different indexes by node's attrs.
+                    # Step1. We need to merge the different clusters, because of the investment relationship.
+                    new_idx = self.merge_cluster(merge_idx)
+                    # Step2. Update attr_idx_ by idx_attr_
+                    attrs = []
+                    for idx_ in merge_idx:
+                        attrs_ = self.get_attr_by_idx(idx_)
+                        attrs.append(attrs_)
+                    attrs = attrs + keys
+                    attrs = list(set(attrs))
+                    self.update_idx_by_attr(attrs, new_idx)
+                    # Step3. Update idx_attr_
+                    self.put_attr_by_idx(new_idx, attrs)
+                    # Step4. Delete old indexes
+                    self.del_attr_by_idx(merge_idx)
+                    # Step5. Put node into cluster by new_idx
+                    slef.put_cluster(new_idx, node)
             else:
-                index_ = self.new_cluster(node)
-                success = self.push_into_hash(keys, index_)
+                new_idx = self.new_cluster(node)
+                self.put_attr_by_idx(new_idx, keys)
+                success = self.put_idx_by_attr(keys, new_idx)
                 if not success:
                     print("* EM_Cluster: Build cluster failed !")
                     exit(1)
     def compute_cluster(self):
-        for cluster in self.cluster_:
-            relation = len(cluster)
-            for node in cluster:
+        for idx in self.idx_attr_.keys():
+        # for cluster in self.cluster_:
+            relation = len(self.cluster_[idx])
+            for node in self.cluster_[idx]:
                 node["relation"] = relation - 1
     def show_result(self):
-        for cluster in self.cluster_:
-            for node in cluster:
+        for idx in self.idx_attr_.keys():
+        # for cluster in self.cluster_:
+            for node in self.cluster_[idx]:
                 print("* Node: " + node["name"] + " Relation: " + node["relation"])
 
 # Build nodes by read EnterpriseMap.xlsx
@@ -83,44 +134,20 @@ def build_nodes(sheet, rows, column):
         nodes.append(node)
     return nodes
         
+if __name__ == "__main__":
+    excel = xlsx.load_workbook("../data/EnterpriseMap.xlsx")
+    sheet = excel.get_sheet_by_name("EnterpriseMap")
+    # excel = xlsx.load_workbook("../data/Test.xlsx")
+    # sheet = excel.get_sheet_by_name("Sheet1")
 
-excel = xlsx.load_workbook("../data/EnterpriseMap.xlsx")
-sheet = excel.get_sheet_by_name("EnterpriseMap")
-# excel = xlsx.load_workbook("../data/Test.xlsx")
-# sheet = excel.get_sheet_by_name("Sheet1")
+    # row between 133 - 10006
+    # col C:company D:LE E:SH
+    column = ["C", "D", "E"]
+    rows = [1, 10006]
+    nodes = build_nodes(sheet, rows, column)
 
-# row between 133 - 10006
-# col C:company D:LE E:SH
-column = ["C", "D", "E"]
-rows = 180
+    em_cluster = EM_Cluster()
+    em_cluster.build_cluster(nodes)
+    em_cluster.compute_cluster()
+    em_cluster.show_result()
 
-# for col in column:
-node_dict = {}
-print("* Read xlsx")
-for row in range(133, rows + 1):
-    from_node = sheet[column[2] + str(row)].value
-    to_node = sheet[column[0] + str(row)].value
-    node_dict[from_node] = to_node
-
-node_graph = nx.DiGraph()
-node_graph.clear()
-
-print("* NX build graph")
-for from_nodes, to_node in node_dict.items():
-    from_node_list = str(from_nodes).split(",")
-    for from_node in from_node_list:
-        # print from_node,"->",to_node
-        node_graph.add_edge(from_node, to_node)
-
-print("* NX draw graph")
-# nx.draw_networkx(node_graph, pos=nx.random_layout(node_graph), with_labels=True, font_size=8, node_color="r", edge_color="black")
-nx.draw_networkx(node_graph,
-                 pos=nx.random_layout(node_graph),
-                 with_labels=False,
-                 font_size=6,
-                 node_color="r",
-                 edge_color="b")
-print("* NX save graph")
-pic_name = "node_graph.png"
-plt.savefig(pic_name)
-plt.show()
