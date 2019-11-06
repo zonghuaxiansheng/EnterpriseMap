@@ -54,7 +54,7 @@ class EM_Cluster:
         merge_nodes = []
         for idx in indexes:
             merge_nodes.extend(self.cluster_[idx])
-        merge_nodes = list(set(merge_nodes))
+        # merge_nodes = list(set(merge_nodes))
         self.cluster_.append(merge_nodes)
         return len(self.cluster_) - 1
     def build_cluster(self, nodes):
@@ -64,6 +64,7 @@ class EM_Cluster:
             if indexes:
                 merge_idx = list(set(indexes))
                 if len(merge_idx) == 1:
+                    merge_idx = merge_idx[0]
                     # Step1. Put node into cluster by index
                     self.put_cluster(merge_idx, node)
                     # Step2. Put all node's attrs into idx_attr_
@@ -81,7 +82,7 @@ class EM_Cluster:
                     attrs = []
                     for idx_ in merge_idx:
                         attrs_ = self.get_attr_by_idx(idx_)
-                        attrs.append(attrs_)
+                        attrs = attrs + attrs_
                     attrs = attrs + keys
                     attrs = list(set(attrs))
                     self.update_idx_by_attr(attrs, new_idx)
@@ -90,7 +91,7 @@ class EM_Cluster:
                     # Step4. Delete old indexes
                     self.del_attr_by_idx(merge_idx)
                     # Step5. Put node into cluster by new_idx
-                    slef.put_cluster(new_idx, node)
+                    self.put_cluster(new_idx, node)
             else:
                 new_idx = self.new_cluster(node)
                 self.put_attr_by_idx(new_idx, keys)
@@ -108,7 +109,7 @@ class EM_Cluster:
         for idx in self.idx_attr_.keys():
         # for cluster in self.cluster_:
             for node in self.cluster_[idx]:
-                print("* Node: " + node["name"] + " Relation: " + node["relation"])
+                print("* Node: " + node["name"] + " Relation: " + str(node["relation"]))
 
 # Build nodes by read EnterpriseMap.xlsx
 # node dict structure:
@@ -141,9 +142,9 @@ if __name__ == "__main__":
     # sheet = excel.get_sheet_by_name("Sheet1")
 
     # row between 133 - 10006
-    # col C:company D:LE E:SH
-    column = ["C", "D", "E"]
-    rows = [1, 10006]
+    # col C:company D:LE E:SH F:value
+    column = ["C", "D", "E", "F"]
+    rows = [7, 10006]
     nodes = build_nodes(sheet, rows, column)
 
     em_cluster = EM_Cluster()
