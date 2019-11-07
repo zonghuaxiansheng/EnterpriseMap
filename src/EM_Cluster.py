@@ -60,7 +60,9 @@ class EM_Cluster:
     def build_cluster(self, nodes):
         for node in nodes:
             keys = node["keys"]
-            indexes = self.get_idx_by_attr(keys)
+            keys_ = keys
+            keys_.append(node["name"])
+            indexes = self.get_idx_by_attr(keys_)
             if indexes:
                 merge_idx = list(set(indexes))
                 if len(merge_idx) == 1:
@@ -110,6 +112,12 @@ class EM_Cluster:
         # for cluster in self.cluster_:
             for node in self.cluster_[idx]:
                 print("* Node: " + node["name"] + " Relation: " + str(node["relation"]))
+    def get_result(self):
+        nodes = []
+        for idx in self.idx_attr_.keys():
+            for node in self.cluster_[idx]:
+                nodes.append(node)
+        return nodes
 
 # Build nodes by read EnterpriseMap.xlsx
 # node dict structure:
@@ -134,6 +142,11 @@ def build_nodes(sheet, rows, column):
         node["point"] = column[3] + str(row)
         nodes.append(node)
     return nodes
+
+def write_nodes(sheet, nodes):
+    for node in nodes:
+        point = node["point"]
+        sheet[point] = node["relation"]
         
 if __name__ == "__main__":
     excel = xlsx.load_workbook("../data/EnterpriseMap.xlsx")
@@ -146,9 +159,17 @@ if __name__ == "__main__":
     column = ["C", "D", "E", "F"]
     rows = [7, 10006]
     nodes = build_nodes(sheet, rows, column)
-
+    
     em_cluster = EM_Cluster()
     em_cluster.build_cluster(nodes)
     em_cluster.compute_cluster()
-    em_cluster.show_result()
+    # em_cluster.show_result()
+    nodes = em_cluster.get_result()
+
+    for node in nodes:
+        point = node["point"]
+        sheet[point].value = node["relation"]
+    
+    excel.save("../data/NewEnterpriseMap.xlsx")
+    # write_nodes(sheet, nodes)
 
