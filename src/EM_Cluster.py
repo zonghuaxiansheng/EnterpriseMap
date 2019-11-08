@@ -151,8 +151,6 @@ def write_nodes(sheet, nodes):
 if __name__ == "__main__":
     excel = xlsx.load_workbook("../data/EnterpriseMap.xlsx")
     sheet = excel.get_sheet_by_name("EnterpriseMap")
-    # excel = xlsx.load_workbook("../data/Test.xlsx")
-    # sheet = excel.get_sheet_by_name("Sheet1")
 
     # row between 133 - 10006
     # col C:company D:LE E:SH F:value
